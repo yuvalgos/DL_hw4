@@ -17,7 +17,7 @@ def part1_pg_hyperparams():
     # TODO: Tweak the hyperparameters if needed.
     #  You can also add new ones if you need them for your model's __init__.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    hp['hidden_layers'] = [32, 32]
     # ========================
     return hp
 

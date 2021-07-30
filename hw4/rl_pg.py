@@ -17,7 +17,7 @@ from .rl_data import Episode, Experience, TrainBatch
 
 
 class PolicyNet(nn.Module):
-    def __init__(self, in_features: int, out_actions: int, **kw):
+    def __init__(self, in_features: int, out_actions: int, hidden_layers: List[int], **kw):
         """
         Create a model which represents the agent's policy.
         :param in_features: Number of input features (in one observation).
@@ -28,13 +28,23 @@ class PolicyNet(nn.Module):
 
         # TODO: Implement a simple neural net to approximate the policy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        layers_sizes = [in_features] + hidden_layers + [out_actions]
+        layers = []
+
+        for l_in, l_out in zip(layers_sizes[0:len(layers_sizes) - 1], layers_sizes[1:len(layers_sizes)]):
+            layers.append(nn.Linear(l_in, l_out,))
+            if l_out != out_actions:
+                layers.append(nn.ReLU())
+                layers.append(nn.BatchNorm1d(l_out))
+
+        self.network = nn.Sequential(*layers)
+
         # ========================
 
     def forward(self, x):
         # TODO: Implement a simple neural net to approximate the policy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        action_scores = self.network(x)
         # ========================
         return action_scores
 
