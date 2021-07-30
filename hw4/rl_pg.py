@@ -35,7 +35,7 @@ class PolicyNet(nn.Module):
             layers.append(nn.Linear(l_in, l_out,))
             if l_out != out_actions:
                 layers.append(nn.ReLU())
-                layers.append(nn.BatchNorm1d(l_out))
+                #layers.append(nn.BatchNorm1d(l_out))
 
         self.network = nn.Sequential(*layers)
 
@@ -59,7 +59,8 @@ class PolicyNet(nn.Module):
         """
         # TODO: Implement according to docstring.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        net = PolicyNet(in_features=env.observation_space.shape[0], out_actions=env.action_space.n, **kw)
+
         # ========================
         return net.to(device)
 
@@ -97,7 +98,9 @@ class PolicyAgent(object):
         #  Generate the distribution as described above.
         #  Notice that you should use p_net for *inference* only.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        with torch.no_grad():
+            actions_scores = self.p_net(self.curr_state)
+            actions_proba = nn.functional.softmax(actions_scores, dim=-1)
         # ========================
 
         return actions_proba
