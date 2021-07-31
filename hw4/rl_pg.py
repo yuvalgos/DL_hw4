@@ -121,9 +121,18 @@ class PolicyAgent(object):
         #  - Update agent state.
         #  - Generate and return a new experience.
         # ====== YOUR CODE: ======
+        # sample action from policy:
+        action_distribution = self.current_action_distribution()
+        m = torch.distributions.Categorical(action_distribution)
+        action = int(m.sample())  # could have used heuristic, may be in the future
 
-        raise NotImplementedError()
+        # perform step:
+        observation, reward, is_done, _ = self.env.step(action)
 
+        # create experience before updating self state:
+        experience = Experience(self.curr_state, action, reward, is_done)
+
+        self.curr_state = torch.tensor(observation, device=self.device, dtype=torch.float)
         # ========================
         if is_done:
             self.reset()
@@ -149,7 +158,15 @@ class PolicyAgent(object):
             #  Create an agent and play the environment for one episode
             #  based on the policy encoded in p_net.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            agent = cls(env, p_net, device)
+            is_done = False
+            n_steps = 0
+            reward = 0
+            while not is_done:
+                exp = agent.step()
+                n_steps += 1
+                is_done = exp.is_done
+                reward += exp.reward
             # ========================
         return env, n_steps, reward
 
