@@ -34,8 +34,8 @@ class PolicyNet(nn.Module):
         for l_in, l_out in zip(layers_sizes[0:len(layers_sizes) - 1], layers_sizes[1:len(layers_sizes)]):
             layers.append(nn.Linear(l_in, l_out,))
             if l_out != out_actions:
+                #layers.append(nn.BatchNorm1d(l_out, affine=False))
                 layers.append(nn.ReLU())
-                #layers.append(nn.BatchNorm1d(l_out))
 
         self.network = nn.Sequential(*layers)
 
@@ -99,7 +99,8 @@ class PolicyAgent(object):
         #  Notice that you should use p_net for *inference* only.
         # ====== YOUR CODE: ======
         with torch.no_grad():
-            actions_scores = self.p_net(self.curr_state)
+            x = self.curr_state
+            actions_scores = self.p_net(x)
             actions_proba = nn.functional.softmax(actions_scores, dim=-1)
         # ========================
 
