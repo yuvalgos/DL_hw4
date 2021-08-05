@@ -18,6 +18,7 @@ def part1_pg_hyperparams():
     #  You can also add new ones if you need them for your model's __init__.
     # ====== YOUR CODE: ======
     hp['hidden_layers'] = [32, 32]
+    hp['num_workers'] = 0
     # ========================
     return hp
 
