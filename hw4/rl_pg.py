@@ -124,8 +124,8 @@ class PolicyAgent(object):
         # ====== YOUR CODE: ======
         # sample action from policy:
         action_distribution = self.current_action_distribution()
-        m = torch.distributions.Categorical(action_distribution)
-        action = int(m.sample())  # could have used heuristic, may be in the future
+        action = torch.multinomial(action_distribution, 1).item()
+        # could have used heuristic, may be in the future
 
         # perform step:
         observation, reward, is_done, _ = self.env.step(action)
@@ -216,9 +216,7 @@ class VanillaPolicyGradientLoss(nn.Module):
         # ====== YOUR CODE: ======
         log_proba = torch.log_softmax(action_scores, dim=1)
         log_proba_taken_action = torch.gather(log_proba, dim=1, index=batch.actions.view(-1, 1))
-        # print(batch.actions)
-        # print(log_proba)
-        # print(log_proba_taken_action.squeeze().shape)
+
         loss_p = - torch.dot(log_proba_taken_action.squeeze(), policy_weight) / len(batch)
         # ========================
         return loss_p
@@ -237,7 +235,8 @@ class BaselinePolicyGradientLoss(VanillaPolicyGradientLoss):
         #  Calculate the loss and baseline.
         #  Use the helper methods in this class as before.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        weights, baseline = self._policy_weight(batch)
+        loss_p = self._policy_loss(batch, action_scores, weights)
         # ========================
         return loss_p, dict(loss_p=loss_p.item(), baseline=baseline.item())
 
@@ -246,7 +245,9 @@ class BaselinePolicyGradientLoss(VanillaPolicyGradientLoss):
         #  Calculate both the policy weight term and the baseline value for
         #  the PG loss with baseline.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # ok now i see why we need a separate method
+        baseline = batch.q_vals.mean()
+        policy_weight = batch.q_vals - baseline
         # ========================
         return policy_weight, baseline
 
@@ -270,7 +271,10 @@ class ActionEntropyLoss(nn.Module):
         max_entropy = None
         # TODO: Compute max_entropy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # max entropy is achived at uniform distribution, that means all actions
+        # has probability of 1/n. by writing it in the entropy formula,
+        # we get just the log of 1/n
+        max_entropy = -math.log(1/n_actions)
         # ========================
         return max_entropy
 
