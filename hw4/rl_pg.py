@@ -308,7 +308,6 @@ class ActionEntropyLoss(nn.Module):
         loss_e = torch.sum(action_proba * action_log_proba) / action_proba.shape[0]
         # normalize:
         loss_e = loss_e / self.max_entropy
-
         # ========================
 
         loss_e *= self.beta
