@@ -300,7 +300,15 @@ class ActionEntropyLoss(nn.Module):
         #   - Use pytorch built-in softmax and log_softmax.
         #   - Calculate loss per experience and average over all of them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        action_proba = torch.softmax(action_scores, dim=1)
+        action_log_proba = torch.log_softmax(action_scores, dim=1)
+
+        # sum over columns is per expirence loss,
+        # we sum over rows as well to get the average
+        loss_e = torch.sum(action_proba * action_log_proba) / action_proba.shape[0]
+        # normalize:
+        loss_e = loss_e / self.max_entropy
+
         # ========================
 
         loss_e *= self.beta
