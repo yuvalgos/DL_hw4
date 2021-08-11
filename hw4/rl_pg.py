@@ -124,7 +124,7 @@ class PolicyAgent(object):
         # ====== YOUR CODE: ======
         # sample action from policy:
         action_distribution = self.current_action_distribution()
-        action = torch.multinomial(action_distribution, 1).item()
+        action = torch.multinomial(action_distribution, num_samples=1).item()
         # could have used heuristic, may be in the future
 
         # perform step:
@@ -271,7 +271,7 @@ class ActionEntropyLoss(nn.Module):
         max_entropy = None
         # TODO: Compute max_entropy.
         # ====== YOUR CODE: ======
-        # max entropy is achived at uniform distribution, that means all actions
+        # max entropy is achieved at uniform distribution, that means all actions
         # has probability of 1/n. by writing it in the entropy formula,
         # we get just the log of 1/n
         max_entropy = -math.log(1/n_actions)
@@ -454,7 +454,18 @@ class PolicyTrainer(object):
         #   - Backprop.
         #   - Update model parameters.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # ========================
 
+        # forward
+        action_scores = self.model(batch.states)
+        total_loss = 0
+        for curr_loss in self.loss_functions:
+            loss, loss_dict = curr_loss(batch, action_scores)
+            total_loss += loss
+            losses_dict.update(loss_dict)
+
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
+
+        # ========================
         return total_loss, losses_dict
