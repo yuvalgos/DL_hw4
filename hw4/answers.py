@@ -73,9 +73,19 @@ part1_q2 = r"""
 Random signals lesson: 
 Note that $ v_{\pi}(s) = \sum_{a \in \mathcal{A}} \pi(a|s) \cdot q_{\pi}(s,a) \cdot p(a|s,\pi)  $
 
+
+
 Note that because we take the mean over many trajectories, we hope that due to LLN our optimization will push
 $\hat{v}_{\pi}(s)$ to be approximately (the many trajectories implicitly factor in the 
 probability of each action given a state) $\mathbb{E}({\hat{q}_{i,t}|s_0 = s,\pi})$
+
+Since:
+$$
+q-values= $\hat{q}_{i,t} = \sum_{t'\geq t} \gamma^{t'}r_{i,t'+1}
+$$
+$$
+g_t(\tau) = r_{t+1}+\gamma r_{t+2} + \dots = \sum_{k=0}^{\infty} \gamma^k r_{t+1+k}
+$$
 
 This is more or less $\mathbb{E}({g(\tau)|s_0 = s,\pi})$ which is the definition of $v_{\pi}(s)$.
 
