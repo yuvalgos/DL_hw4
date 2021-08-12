@@ -46,8 +46,6 @@ def part1_aac_hyperparams():
 
 
 part1_q1 = r"""
-**Your answer:**
-
 Subtracting a baseline in the Policy gradient decreases the size of the weights multiplied by the gradients
 of the log-prob of the Policy.
 Qualitatively, a baseline is a function when added to an expectation, does not change the expected value,
@@ -68,12 +66,11 @@ In general this is helpful when the scales of the reward for different trajector
 
 
 part1_q2 = r"""
-**Your answer:**
 
-Random signals lesson: 
-Note that $ v_{\pi}(s) = \sum_{a \in \mathcal{A}} \pi(a|s) \cdot q_{\pi}(s,a) \cdot p(a|s,\pi)  $
+Note that $ v_{\pi}(s) = \sum_{a \in \mathcal{A}} \pi(a|s) \cdot q_{\pi}(s,a) $
 
-Note that because we take the mean over many trajectories, we hope that due to LLN our optimization will push
+Note that because we take the mean over many trajectories, we hope that due to the law
+of large numbers our optimization will push
 $\hat{v}_{\pi}(s)$ to be approximately (the many trajectories implicitly factor in the 
 probability of each action given a state) $\mathbb{E}({\hat{q}_{i,t}|s_0 = s,\pi})$
 
@@ -86,14 +83,29 @@ approximation of the value function.
 
 
 part1_q3 = r"""
-**Your answer:**
+**1**
 
+In the mean_reward graph, we can see a standard learning curve. the reward the agent manages 
+to get raises through out the training.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+In the policy loss graph, we can see similar convergence for the non-baseline experiences, but
+a constant curve at around zero for the baseline methods. This happens because the baseline 
+term we subtract from the weight of each sample normalizes the loss to be around zero, while
+only the base line changes through the training as we see in the base line graph. 
+We can see that for the base line methods, the baseline, which represents the average q value
+raises which means the model improves.
+
+Finally, in the entropy loss graph we can see that the negative entropy raises, which means
+that the entropy drops until some point in the training, then it stays quite constant, which means
+that actually the model chooses less diverse policies. That probably happens because the policy
+loss takes more weight of the total loss, so the model chooses better policy instead of a more
+diverse one. The entropy loss is only a restraining factor to make the model do more exploration.
+
+**2**
+The ACC performed as good as the CPG in the graphs, but that was before our final hyperparameters
+tuning, which made it converge a little slower, but get better results. 
+In addition, ACC was a little bit less stable, it diverged after it got some good results but
+then converged again. that happened probably because we estimated the baseline with a neural
+network which added some instability.  
 
 """
