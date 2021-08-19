@@ -13,8 +13,8 @@ class SentimentGRU(nn.Module):
 
         self.embedding_layer = torch.nn.Embedding.from_pretrained(
             torch.from_numpy(embeddings).float())
-        if freeze_embedding:
-            self.embedding_layer.weight.requires_grad = False
+
+        self.embedding_layer.weight.requires_grad = False if freeze_embedding else True
 
         self.gru = torch.nn.GRU(input_size=self.embedding_dim,
                                 hidden_size=hidden_size,
