@@ -5,25 +5,36 @@ import math
 
 
 class SentimentSelfAttention(nn.Module):
-    def __init__(self, embeddings: np.ndarray, num_classes=3, num_heads=1,
+    def __init__(self, embeddings: np.ndarray, d_model=256, num_classes=3, num_heads=1,
                  dropout=.0, freeze_embedding=True):
         super().__init__()
         self.num_heads = num_heads
+        self.d_model = d_model
         self.vocab_size = embeddings.shape[0]
         self.embedding_dim = embeddings.shape[1]
 
         self.embedding_layer = torch.nn.Embedding.from_pretrained(
             torch.from_numpy(embeddings).float())
-
         self.embedding_layer.weight.requires_grad = False if freeze_embedding else True
 
         self.PositionalEncoding = PositionalEncoding(self.embedding_dim)
+        self.PositionalEncoding.requires_grad_(False)
 
-        self.SelfAttention1 = nn.MultiheadAttetntion(self.embedding_dim, num_heads, dropout)
+        self.q_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.ReLU())
+        self.k_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.ReLU())
+        self.v_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.ReLU())
+
+        self.SelfAttention1 = nn.MultiheadAttention(d_model, num_heads, dropout)
 
         #self.SelfAttention2 = nn.MultiheadAttetntion(self.embedding_dim, num_heads, dropout)
 
-        self.dense_linear = torch.nn.Linear(self.embedding_dim, num_classes)
+        self.attention_out_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
+                                                             torch.nn.ReLU())
+
+        self.dense_linear = torch.nn.Linear(d_model, num_classes)
 
         # To convert class scores to log-probability we'll apply log-softmax
         self.log_softmax = nn.LogSoftmax(dim=1)
@@ -33,11 +44,20 @@ class SentimentSelfAttention(nn.Module):
         X_embedded = self.embedding_layer(X)
 
         X_embedded_pe = self.PositionalEncoding(X_embedded)
-        # self Attention returns
-        _, h_n = self.SelfAttention1(X_embedded_pe, X_embedded_pe, X_embedded_pe)
 
-        # we only need the last hidden state at the last time step
-        class_scores = self.dense_linear(h_n[-1, :, :])
+        q = self.q_feedforward(X_embedded_pe)
+        k = self.k_feedforward(X_embedded_pe)
+        v = self.v_feedforward(X_embedded_pe)
+        # q, k, v dimensions are (S, B, d_model)
+
+        attention_out, _ = self.SelfAttention1(q, k, v)  # (S, B, d_model)
+
+        attention_out_avg = attention_out.mean(dim=0)
+
+        out_ff = self.attention_out_feedforward(attention_out_avg)
+
+        class_scores = self.dense_linear(out_ff)
+        #print("seq_class_scores shape:", seq_class_scores.shape)
 
         log_prob = self.log_softmax(class_scores)
         sentiment_class = torch.argmax(class_scores, dim=1)

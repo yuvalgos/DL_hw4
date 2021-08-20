@@ -1,0 +1,8 @@
+- סידור של המודל של SelfAttention - להוציא את המשקלים הנלמדים החוצה
+- add another layer of self attention
+- visualize the attention learned weights
+- הוספת test epoch evaluation , 
+- גרף אימון על הטסט והולידיישן
+- tune hyperparameters for both models
+- rearange training notebook for neat training and saving models
+- write the project notebook according to guidelines
