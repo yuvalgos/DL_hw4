@@ -12,7 +12,9 @@ class SentimentSelfAttention(nn.Module):
         self.embedding_dim = embeddings.shape[1]
         self.d_model = d_model
         self.num_heads = num_heads
-        self.two_layers= two_layers
+        self.two_layers = two_layers
+
+        self.last_attention_weights = None
 
         self.embedding_layer = torch.nn.Embedding.from_pretrained(
             torch.from_numpy(embeddings).float())
@@ -31,10 +33,10 @@ class SentimentSelfAttention(nn.Module):
                                                  torch.nn.Dropout(p=dropout),
                                                  torch.nn.ReLU())
 
-        self.SelfAttention1 = nn.MultiheadAttention(d_model, num_heads, dropout)
+        self.SelfAttention1 = torch.nn.MultiheadAttention(d_model, num_heads, dropout)
 
         if two_layers:
-            self.SelfAttention2 = torch.nn.MultiheadAttetntion(d_model, num_heads, dropout)
+            self.SelfAttention2 = torch.nn.MultiheadAttention(d_model, num_heads, dropout)
 
             self.q2_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
                                                       torch.nn.Dropout(p=dropout),
@@ -56,6 +58,7 @@ class SentimentSelfAttention(nn.Module):
         self.log_softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, X):
+        # torch.autograd.set_detect_anomaly(True)
         attention_weights = []
 
         # X shape is (S, B). contains tokens
@@ -72,12 +75,13 @@ class SentimentSelfAttention(nn.Module):
         attention_weights.append(weights1)
 
         if self.two_layers:
-            q2 = self.q2_feedforward(X_embedded_pe)
-            k2 = self.k2_feedforward(X_embedded_pe)
-            v2 = self.v2_feedforward(X_embedded_pe)
+            q2 = self.q2_feedforward(attention_out)
+            k2 = self.k2_feedforward(attention_out)
+            v2 = self.v2_feedforward(attention_out)
 
             # layer 2 is connected in a residual connection:
-            attention_out, weights2 = (attention_out, 0) + self.SelfAttention2(q2, k2, v2)
+            attention_out2, weights2 = self.SelfAttention2(q2, k2, v2)
+            attention_out = attention_out + attention_out2
             attention_weights.append(weights2)
 
         attention_out_avg = attention_out.mean(dim=0)
@@ -90,8 +94,9 @@ class SentimentSelfAttention(nn.Module):
         log_prob = self.log_softmax(class_scores)
         sentiment_class = torch.argmax(class_scores, dim=1)
 
-        # log prob shape is(B, C)
-        return sentiment_class, log_prob, attention_weights
+        self.last_attention_weights = attention_weights
+
+        return sentiment_class, log_prob
 
 
 class PositionalEncoding(nn.Module):
