@@ -6,12 +6,13 @@ import math
 
 class SentimentSelfAttention(nn.Module):
     def __init__(self, embeddings: np.ndarray, d_model=256, num_classes=3, num_heads=1,
-                 dropout=.0, freeze_embedding=True):
+                 dropout=.0, two_layers=False, freeze_embedding=True):
         super().__init__()
-        self.num_heads = num_heads
-        self.d_model = d_model
-        self.vocab_size = embeddings.shape[0]
+
         self.embedding_dim = embeddings.shape[1]
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.two_layers= two_layers
 
         self.embedding_layer = torch.nn.Embedding.from_pretrained(
             torch.from_numpy(embeddings).float())
@@ -21,17 +22,32 @@ class SentimentSelfAttention(nn.Module):
         self.PositionalEncoding.requires_grad_(False)
 
         self.q_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.Dropout(p=dropout),
                                                  torch.nn.ReLU())
         self.k_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.Dropout(p=dropout),
                                                  torch.nn.ReLU())
         self.v_feedforward = torch.nn.Sequential(torch.nn.Linear(self.embedding_dim, d_model),
+                                                 torch.nn.Dropout(p=dropout),
                                                  torch.nn.ReLU())
 
         self.SelfAttention1 = nn.MultiheadAttention(d_model, num_heads, dropout)
 
-        #self.SelfAttention2 = nn.MultiheadAttetntion(self.embedding_dim, num_heads, dropout)
+        if two_layers:
+            self.SelfAttention2 = torch.nn.MultiheadAttetntion(d_model, num_heads, dropout)
+
+            self.q2_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
+                                                      torch.nn.Dropout(p=dropout),
+                                                      torch.nn.ReLU())
+            self.k2_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
+                                                      torch.nn.Dropout(p=dropout),
+                                                      torch.nn.ReLU())
+            self.v2_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
+                                                      torch.nn.Dropout(p=dropout),
+                                                      torch.nn.ReLU())
 
         self.attention_out_feedforward = torch.nn.Sequential(torch.nn.Linear(d_model, d_model),
+                                                             torch.nn.Dropout(p=dropout),
                                                              torch.nn.ReLU())
 
         self.dense_linear = torch.nn.Linear(d_model, num_classes)
@@ -40,6 +56,8 @@ class SentimentSelfAttention(nn.Module):
         self.log_softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, X):
+        attention_weights = []
+
         # X shape is (S, B). contains tokens
         X_embedded = self.embedding_layer(X)
 
@@ -50,20 +68,30 @@ class SentimentSelfAttention(nn.Module):
         v = self.v_feedforward(X_embedded_pe)
         # q, k, v dimensions are (S, B, d_model)
 
-        attention_out, _ = self.SelfAttention1(q, k, v)  # (S, B, d_model)
+        attention_out, weights1 = self.SelfAttention1(q, k, v)  # (S, B, d_model)
+        attention_weights.append(weights1)
+
+        if self.two_layers:
+            q2 = self.q2_feedforward(X_embedded_pe)
+            k2 = self.k2_feedforward(X_embedded_pe)
+            v2 = self.v2_feedforward(X_embedded_pe)
+
+            # layer 2 is connected in a residual connection:
+            attention_out, weights2 = (attention_out, 0) + self.SelfAttention2(q2, k2, v2)
+            attention_weights.append(weights2)
 
         attention_out_avg = attention_out.mean(dim=0)
 
         out_ff = self.attention_out_feedforward(attention_out_avg)
 
         class_scores = self.dense_linear(out_ff)
-        #print("seq_class_scores shape:", seq_class_scores.shape)
+        # print("seq_class_scores shape:", seq_class_scores.shape)
 
         log_prob = self.log_softmax(class_scores)
         sentiment_class = torch.argmax(class_scores, dim=1)
 
         # log prob shape is(B, C)
-        return sentiment_class, log_prob
+        return sentiment_class, log_prob, attention_weights
 
 
 class PositionalEncoding(nn.Module):
