@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class SentimentGRU(nn.Module):
-    def __init__(self, embeddings: np.ndarray, num_classes=3,hidden_size=128, num_layers=2,
+    def __init__(self, embeddings: np.ndarray, num_classes=3, hidden_size=128, num_layers=2,
                  dropout=.0, freeze_embedding=True):
         super().__init__()
 
@@ -23,7 +23,9 @@ class SentimentGRU(nn.Module):
 
         # GRU output shape after taking last layer at last time step is (B, hidden_size),
         # we need a dense layer to get class scores from it
-        self.dense_linear = torch.nn.Linear(hidden_size, num_classes)
+        self.dense_linear = torch.nn.Sequential(torch.nn.Linear(hidden_size, num_classes),)
+                                                # torch.nn.Dropout(p=dropout),
+                                                # torch.nn.ReLU())
 
         # To convert class scores to log-probability we'll apply log-softmax
         self.log_softmax = nn.LogSoftmax(dim=1)
